@@ -27,7 +27,7 @@ function run(tFrame) {
 
     for (let i = 0; i < numTicks; i++) {
         lastTick = lastTick + tickLength;
-        update(lastTick, stopGame);
+        update(canvas, lastTick, stopGame);
     }
 
     draw(canvas, tFrame);

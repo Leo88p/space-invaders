@@ -3,10 +3,14 @@ import Cannon from './cannon'
 import Bullet from './bullet'
 import Alien from './alien'
 import InputHandler from './input-handler'
+import Score from './score'
+import Life from './life'
 
 import assetPath from '../assets/invaders.png'
+import fontPath from 'url:../assets/PixelifySans-Regular.ttf'
 
 let assets;
+let seconds = 0;
 const sprites = {
   aliens: [],
   cannon: null,
@@ -16,6 +20,8 @@ const gameState = {
   bullets: [],
   aliens: [],
   cannon: null,
+  score: null,
+  life: null
 };
 const inputHandler = new InputHandler();
 
@@ -29,20 +35,22 @@ export function preload(onPreloadComplete) {
 			[new Sprite(assets, 22, 0, 16, 16), new Sprite(assets, 22, 16, 16, 16)],
 			[new Sprite(assets, 38, 0, 24, 16), new Sprite(assets, 38, 16, 24, 16)]
     ]
-
-    onPreloadComplete();
+    const font = new FontFace("Pixel", `url(${fontPath})`);
+    document.fonts.add(font)
+    font.load().then(()=>onPreloadComplete());
   });
 	assets.src = assetPath;
 }
 
 export function init(canvas) {
-  const alienTypes = [1, 0, 1, 2, 0, 2];
-	for (var i = 0, len = alienTypes.length; i < len; i++) {
-		for (var j = 0; j < 10; j++) {
-      const alienType = alienTypes[i];
+  const lines = [9, 9]
+  const offsets = [60, 90]
+	for (var i = 0, len = 5; i < len; i++) {
+		for (var j = 0; j < lines[i%2]; j++) {
+      const alienType = Math.floor(Math.random() * 3);
 
-      let alienX = 30 + j*30;
-      let alienY = 30 + i*30;
+      let alienX = offsets[i%2] + j*60;
+      let alienY = 90 + i*30;
 
       if (alienType === 1) {
         alienX += 3; // (kostyl) aliens of this type is a bit thinner
@@ -55,18 +63,27 @@ export function init(canvas) {
 	}
 
   gameState.cannon = new Cannon(
-    100, canvas.height - 100,
+    canvas.width/2, canvas.height - 100,
     sprites.cannon
   );
+
+  gameState.score = new Score(0);
+  gameState.life = new Life(3, sprites.cannon)
 }
 
-export function update(time, stopGame) {
+export function update(canvas, time, stopGame) {
 	if (inputHandler.isDown('ArrowLeft')) {
 		gameState.cannon.x -= 4;
+    if (gameState.cannon.x < 0) {
+      gameState.cannon.x = 0;
+    }
 	}
 
 	if (inputHandler.isDown('ArrowRight')) {
 		gameState.cannon.x += 4;
+    if (gameState.cannon.x > canvas.width - 22) {
+      gameState.cannon.x = canvas.width - 22;
+    }
 	}
 
   if (inputHandler.isPressed('Space')) {
@@ -76,6 +93,33 @@ export function update(time, stopGame) {
 	}
 
   gameState.bullets.forEach(b => b.update(time));
+  gameState.bullets = gameState.bullets.filter(b=>b.y>60 && b.y <canvas.height-80);
+  gameState.bullets.forEach(b=>
+    {if (b.color=="#fff") gameState.aliens=gameState.aliens.filter(a=>{if (a.checkCollision(b, time)) 
+      gameState.score.value++; 
+      return !a.checkCollision(b, time)});
+    });
+  if (Math.ceil(time/1000) > seconds) {
+    seconds++;
+    gameState.aliens.forEach(a=>{
+      a.x+=Math.floor(Math.random()*6)-3; 
+      a.y+=2;
+      if (Math.abs(a.x - gameState.cannon.x) < 100) {
+        a.seeCount++;
+      }
+    })
+    gameState.aliens.forEach(a=>{
+      if (a.seeCount==2) {
+        a.seeCount--;
+        gameState.bullets.push(new Bullet(a.x + a._spriteA.w/2, a.y, 8, 2, 6, "#0f0"));
+      }
+    })
+    gameState.bullets.forEach(b=>{
+      if (b.color=="#0f0" && gameState.cannon.checkCollision(b)) {
+        gameState.life.value--;
+      }
+    })
+  }
 }
 
 export function draw(canvas, time) {
@@ -85,4 +129,6 @@ export function draw(canvas, time) {
   gameState.aliens.forEach(a => a.draw(ctx, time));
   gameState.cannon.draw(ctx);
   gameState.bullets.forEach(b => b.draw(ctx));
+  gameState.score.draw(ctx);
+  gameState.life.draw(ctx, canvas);
 }

@@ -12,4 +12,9 @@ export default class Cannon {
       this.x, this.y, this._sprite.w, this._sprite.h
     );
   }
+
+  checkCollision(bullet) {
+    const sp = this._sprite;
+    return (this.x < bullet.x + bullet.w) && (bullet.x < this.x + sp.w) && (this.y < bullet.y + bullet.h) && (bullet.y < this.y + sp.h);
+  }
 }
