@@ -61,13 +61,14 @@ export function init(canvas) {
 			);
 		}
 	}
-
   gameState.cannon = new Cannon(
     canvas.width/2, canvas.height - 100,
     sprites.cannon
   );
 
+  if (gameState.score == null)
   gameState.score = new Score(0);
+  if (gameState.life == null)
   gameState.life = new Life(3, sprites.cannon)
 }
 
@@ -99,24 +100,36 @@ export function update(canvas, time, stopGame) {
       gameState.score.value++; 
       return !a.checkCollision(b, time)});
     });
+  gameState.bullets.forEach(b=>{
+    if (b.color=="#0f0" && gameState.cannon.checkCollision(b)) {
+      gameState.life.value--;
+      if (gameState.life.value < 0) {
+        stopGame();
+      }
+    }
+  })
+  if (gameState.aliens.length==0) {
+    gameState.bullets = []
+    init(canvas)
+  }
   if (Math.ceil(time/1000) > seconds) {
     seconds++;
     gameState.aliens.forEach(a=>{
       a.x+=Math.floor(Math.random()*6)-3; 
       a.y+=2;
       if (Math.abs(a.x - gameState.cannon.x) < 100) {
-        a.seeCount++;
+        if (Math.random()>0.5)
+          a.seeCount++;
+      }
+      else {
+        if (Math.random()>0.9)
+          a.seeCount++;
       }
     })
     gameState.aliens.forEach(a=>{
       if (a.seeCount==2) {
         a.seeCount--;
         gameState.bullets.push(new Bullet(a.x + a._spriteA.w/2, a.y, 8, 2, 6, "#0f0"));
-      }
-    })
-    gameState.bullets.forEach(b=>{
-      if (b.color=="#0f0" && gameState.cannon.checkCollision(b)) {
-        gameState.life.value--;
       }
     })
   }
@@ -131,4 +144,18 @@ export function draw(canvas, time) {
   gameState.bullets.forEach(b => b.draw(ctx));
   gameState.score.draw(ctx);
   gameState.life.draw(ctx, canvas);
+}
+
+export function finish(canvas) {
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = "#fff";
+  ctx.font = "50px Pixel"
+  const text = `FINAL SCORE: ${gameState.score.value}`
+  const textWidth = ctx.measureText(text).width;
+  ctx.fillText(text, canvas.width/2 - textWidth/2, canvas.height/2 );
+  gameState.aliens = [];
+  gameState.bullets = [];
+  gameState.life = null;
+  gameState.score = null;
 }

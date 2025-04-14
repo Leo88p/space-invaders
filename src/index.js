@@ -2,7 +2,8 @@ import {
   preload,
   init,
   update,
-  draw
+  draw,
+  finish
 } from './game'
 
 const canvas = document.getElementById("cnvs");
@@ -13,6 +14,14 @@ const tickLength = 15; //ms
 let lastTick;
 let lastRender;
 let stopCycle;
+let ended = false;
+
+document.addEventListener("keydown", ()=>{
+  if (ended) {
+    ended = false;
+    onPreloadComplete();
+  }
+})
 
 function run(tFrame) {
     stopCycle = window.requestAnimationFrame(run);
@@ -34,8 +43,10 @@ function run(tFrame) {
     lastRender = tFrame;
 }
 
-function stopGame() {
-    window.cancelAnimationFrame(stopCycle);
+async function stopGame() {
+    await window.cancelAnimationFrame(stopCycle);
+    finish(canvas);
+    ended = true;
 }
 
 function onPreloadComplete() {
